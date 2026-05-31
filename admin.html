@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>창공체전 관리자 페이지</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --blue:#30A1D2;--blue-dark:#1a7dab;--blue-light:rgba(48,161,210,.1);
+  --green:#87bd42;--red:#e63946;--gold:#b07d2a;
+  --bg:#f0f4f8;--card:#fff;--border:#e2e8f0;
+  --text:#374151;--headline:#111827;--muted:#6b7280;
+}
+body{font-family:'Pretendard','Apple SD Gothic Neo',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+
+/* HEADER */
+.topbar{background:#111827;color:#fff;padding:0 1.5rem;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.topbar-left{display:flex;align-items:center;gap:.75rem}
+.topbar h1{font-size:1rem;font-weight:700;letter-spacing:.02em}
+.badge-admin{background:#e63946;color:#fff;font-size:.65rem;font-weight:700;padding:.18rem .5rem;border-radius:4px;letter-spacing:.08em}
+.save-status{font-size:.78rem;color:#9ca3af;transition:color .3s}
+.save-status.saved{color:#87bd42}
+.save-status.saving{color:#f59e0b}
+.save-status.error{color:#e63946}
+
+/* LOGIN */
+#loginScreen{position:fixed;inset:0;background:#111827;display:flex;align-items:center;justify-content:center;z-index:999}
+.login-box{background:#1f2937;border-radius:16px;padding:2.5rem 2rem;width:min(360px,90vw);text-align:center}
+.login-logo{font-size:2rem;margin-bottom:.5rem}
+.login-title{font-size:1.2rem;font-weight:700;color:#fff;margin-bottom:.4rem}
+.login-sub{font-size:.8rem;color:#9ca3af;margin-bottom:1.75rem}
+.login-input{width:100%;background:#374151;border:1.5px solid #4b5563;border-radius:8px;color:#fff;font-size:1rem;padding:.75rem 1rem;outline:none;text-align:center;letter-spacing:.2em;font-family:inherit}
+.login-input:focus{border-color:var(--blue)}
+.login-btn{width:100%;margin-top:.85rem;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:.75rem;font-size:.95rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s}
+.login-btn:hover{opacity:.88}
+.login-err{color:#e63946;font-size:.8rem;margin-top:.65rem;min-height:1.2em}
+
+/* LAYOUT */
+.wrap{max-width:860px;margin:0 auto;padding:1.5rem 1rem 4rem}
+.section{background:var(--card);border-radius:12px;border:1px solid var(--border);margin-bottom:1.25rem;overflow:hidden}
+.section-head{padding:.85rem 1.2rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:#f8fafc}
+.section-title{font-size:.88rem;font-weight:700;color:var(--headline);display:flex;align-items:center;gap:.5rem}
+.section-body{padding:1rem 1.2rem}
+
+/* TABS */
+.sport-tabs{display:flex;gap:.35rem;margin-bottom:1rem;overflow-x:auto;scrollbar-width:none}
+.sport-tabs::-webkit-scrollbar{display:none}
+.stab{padding:.38rem .9rem;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:inherit;font-size:.78rem;border-radius:5px;cursor:pointer;transition:all .15s;white-space:nowrap}
+.stab.on{background:var(--blue);color:#fff;border-color:var(--blue);font-weight:700}
+
+/* MATCH LIST */
+.match-list{display:flex;flex-direction:column;gap:.6rem}
+.match-row{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;display:flex;align-items:center;gap:.75rem;flex-wrap:wrap}
+.match-date-input{width:110px;border:1px solid var(--border);border-radius:5px;padding:.35rem .5rem;font-size:.78rem;font-family:inherit;background:#fff;color:var(--text)}
+.match-team-input{flex:1;min-width:80px;border:1px solid var(--border);border-radius:5px;padding:.35rem .55rem;font-size:.8rem;font-family:inherit;background:#fff;color:var(--text)}
+.match-score-input{width:52px;border:1px solid var(--border);border-radius:5px;padding:.35rem .4rem;font-size:.88rem;font-weight:700;font-family:inherit;background:#fff;color:var(--blue);text-align:center}
+.score-sep{font-size:.85rem;color:var(--muted);font-weight:600;flex-shrink:0}
+.round-select{border:1px solid var(--border);border-radius:5px;padding:.35rem .4rem;font-size:.75rem;font-family:inherit;background:#fff;color:var(--text)}
+.upcoming-check{display:flex;align-items:center;gap:.35rem;font-size:.75rem;color:var(--muted);cursor:pointer;flex-shrink:0}
+.del-btn{background:none;border:none;color:#d1d5db;cursor:pointer;font-size:1rem;padding:.2rem;border-radius:4px;transition:color .15s;flex-shrink:0}
+.del-btn:hover{color:var(--red)}
+.add-btn{display:flex;align-items:center;gap:.4rem;background:none;border:1.5px dashed var(--border);border-radius:7px;padding:.55rem 1rem;color:var(--muted);font-family:inherit;font-size:.8rem;cursor:pointer;width:100%;justify-content:center;margin-top:.4rem;transition:border-color .15s,color .15s}
+.add-btn:hover{border-color:var(--blue);color:var(--blue)}
+
+/* SCORE EDITOR */
+.score-grid{display:grid;grid-template-columns:1fr;gap:.6rem}
+.score-item{background:#f8fafc;border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;display:flex;align-items:center;gap:.85rem;flex-wrap:wrap}
+.score-dept{font-size:.85rem;font-weight:600;color:var(--headline);flex:1;min-width:100px}
+.score-field{display:flex;flex-direction:column;gap:.25rem;min-width:80px}
+.score-field label{font-size:.68rem;color:var(--muted);letter-spacing:.04em}
+.score-num{width:80px;border:1px solid var(--border);border-radius:5px;padding:.35rem .5rem;font-size:.88rem;font-weight:700;color:var(--blue);font-family:inherit;background:#fff;text-align:center}
+.score-text{flex:2;min-width:150px;border:1px solid var(--border);border-radius:5px;padding:.35rem .5rem;font-size:.76rem;font-family:inherit;background:#fff;color:var(--text)}
+
+/* SAVE BTN */
+.save-btn{background:linear-gradient(135deg,var(--blue),var(--green));color:#fff;border:none;border-radius:8px;padding:.65rem 1.5rem;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit;transition:opacity .15s,transform .15s;box-shadow:0 4px 12px rgba(48,161,210,.3)}
+.save-btn:hover{opacity:.9;transform:translateY(-1px)}
+.save-btn:active{transform:scale(.97)}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+
+/* NOTICE */
+.notice{background:rgba(48,161,210,.07);border:1px solid rgba(48,161,210,.25);border-left:3px solid var(--blue);border-radius:6px;padding:.65rem 1rem;font-size:.78rem;color:#1a5b7a;line-height:1.7;margin-bottom:1rem}
+
+/* TOAST */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#111827;color:#fff;padding:.65rem 1.2rem;border-radius:8px;font-size:.82rem;opacity:0;transform:translateY(12px);transition:all .3s;z-index:1000;pointer-events:none;max-width:260px}
+#toast.show{opacity:1;transform:none}
+#toast.success{border-left:3px solid var(--green)}
+#toast.error{border-left:3px solid var(--red)}
+
+@media(max-width:600px){
+  .match-row{gap:.45rem}
+  .match-team-input{min-width:60px}
+}
+</style>
+</head>
+<body>
+
+<!-- 로그인 화면 -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">🏆</div>
+    <div class="login-title">창공체전 관리자</div>
+    <div class="login-sub">운영진 전용 페이지입니다</div>
+    <input id="pwInput" class="login-input" type="password" placeholder="비밀번호 입력" maxlength="20">
+    <button class="login-btn" onclick="tryLogin()">로그인</button>
+    <div class="login-err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- 상단바 -->
+<div class="topbar">
+  <div class="topbar-left">
+    <span class="badge-admin">ADMIN</span>
+    <h1>창공체전 관리자</h1>
+  </div>
+  <span class="save-status" id="saveStatus">Firebase 연결 중...</span>
+</div>
+
+<div class="wrap">
+
+  <!-- 안내 -->
+  <div class="notice">
+    💡 데이터를 수정하고 <strong>저장</strong> 버튼을 누르면 관람자 페이지에 <strong>즉시 반영</strong>됩니다.<br>
+    경기결과·점수현황 탭에서 불러오기 버튼으로 현재 DB 데이터를 먼저 확인하세요.
+  </div>
+
+  <!-- ① 경기결과 편집 -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">⚽🏀🏐 경기 결과 편집</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="save-btn" style="padding:.45rem .9rem;font-size:.78rem" onclick="loadMatches()">🔄 불러오기</button>
+        <button class="save-btn" style="padding:.45rem .9rem;font-size:.78rem" onclick="saveMatches()" id="saveMatchBtn">💾 저장</button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="sport-tabs">
+        <button class="stab on" onclick="showSport('soccer',this)">⚽ 축구</button>
+        <button class="stab" onclick="showSport('basketball',this)">🏀 농구</button>
+        <button class="stab" onclick="showSport('dodgeball',this)">🏐 피구</button>
+      </div>
+      <div id="matchEditorSoccer" class="match-sport-panel">
+        <div class="match-list" id="ml-soccer"></div>
+        <button class="add-btn" onclick="addMatch('soccer')">+ 경기 추가</button>
+      </div>
+      <div id="matchEditorBasketball" class="match-sport-panel" style="display:none">
+        <div class="match-list" id="ml-basketball"></div>
+        <button class="add-btn" onclick="addMatch('basketball')">+ 경기 추가</button>
+      </div>
+      <div id="matchEditorDodgeball" class="match-sport-panel" style="display:none">
+        <div class="match-list" id="ml-dodgeball"></div>
+        <button class="add-btn" onclick="addMatch('dodgeball')">+ 경기 추가</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 점수 현황 편집 -->
+  <div class="section">
+    <div class="section-head">
+      <div class="section-title">📊 학과별 점수 현황 편집</div>
+      <div style="display:flex;gap:.5rem">
+        <button class="save-btn" style="padding:.45rem .9rem;font-size:.78rem" onclick="loadScores()">🔄 불러오기</button>
+        <button class="save-btn" style="padding:.45rem .9rem;font-size:.78rem" onclick="saveScores()" id="saveScoreBtn">💾 저장</button>
+      </div>
+    </div>
+    <div class="section-body">
+      <div class="score-grid" id="scoreEditor"></div>
+    </div>
+  </div>
+
+</div>
+
+<div id="toast"></div>
+
+<script type="module">
+// ── Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, get, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyDZtYVrT2_IvOLsl9u_avQ43nl4V7rut60",
+  authDomain: "changgong-70d16.firebaseapp.com",
+  databaseURL: "https://changgong-70d16-default-rtdb.firebaseio.com",
+  projectId: "changgong-70d16",
+  storageBucket: "changgong-70d16.firebasestorage.app",
+  messagingSenderId: "920246840994",
+  appId: "1:920246840994:web:2d58b0c5bc81a5db26b1fb"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
+
+// ── 상태
+const ADMIN_PW = "changgong2026"; // ← 비밀번호 여기서 변경
+
+const DEPTS = ['사회복지학부','사회학과','심리학과','정치외교학과','미디어커뮤니케이션학과','문헌정보학과','지리학과','자율학부'];
+
+// 기본 경기 데이터 (초기값)
+const defaultMatches = {
+  soccer: [
+    {date:'2026. 5. 4.',  team1:'사회학과',    score1:3, score2:1,  team2:'지리학과',        round:'예선',   upcoming:false},
+    {date:'2026. 5. 6.',  team1:'사회복지학부', score1:8, score2:1,  team2:'심리학과',        round:'예선',   upcoming:false},
+    {date:'2026. 5. 8.',  team1:'정치외교학과', score1:1, score2:0,  team2:'사회학과',        round:'준결승', upcoming:false},
+    {date:'2026. 5. 11.', team1:'사회복지학부', score1:4, score2:2,  team2:'심리학과',        round:'준결승', upcoming:false},
+    {date:'2026. 6. 5.',  team1:'심리학과',    score1:0, score2:0,  team2:'사회학과',        round:'3·4위전',upcoming:true},
+    {date:'2026. 6. 5.',  team1:'사회복지학부', score1:0, score2:0,  team2:'정치외교학과',    round:'결승',   upcoming:true},
+  ],
+  basketball: [
+    {date:'2026. 5. 4.',  team1:'사회학과',    score1:20, score2:15, team2:'정치외교학과',   round:'예선',   upcoming:false},
+    {date:'2026. 5. 6.',  team1:'사회복지학부', score1:30, score2:29, team2:'심리학과',       round:'준결승', upcoming:false},
+    {date:'2026. 5. 13.', team1:'사회학과',    score1:31, score2:10, team2:'문헌정보학과',   round:'준결승', upcoming:false},
+    {date:'2026. 5. 18.', team1:'심리학과',    score1:28, score2:10, team2:'문헌정보학과',   round:'3·4위전',upcoming:false},
+    {date:'2026. 6. 5.',  team1:'사회복지학부', score1:0,  score2:0,  team2:'사회학과',       round:'결승',   upcoming:true},
+  ],
+  dodgeball: [
+    {date:'2026. 5. 4.',  team1:'사회학과',    score1:2, score2:1,  team2:'정치외교학과',    round:'예선',   upcoming:false},
+    {date:'2026. 5. 6.',  team1:'사회복지학부', score1:2, score2:1,  team2:'지리학과',        round:'예선',   upcoming:false},
+    {date:'2026. 5. 8.',  team1:'사회복지학부', score1:2, score2:1,  team2:'심리학과',        round:'준결승', upcoming:false},
+    {date:'2026. 5. 11.', team1:'사회학과',    score1:2, score2:0,  team2:'미디어커뮤니케이션학과', round:'준결승', upcoming:false},
+    {date:'2026. 6. 5.',  team1:'미디어커뮤니케이션학과', score1:0, score2:0, team2:'심리학과', round:'3·4위전',upcoming:true},
+    {date:'2026. 6. 5.',  team1:'사회학과',    score1:0, score2:0,  team2:'사회복지학부',    round:'결승',   upcoming:true},
+  ]
+};
+
+const defaultScores = [
+  {name:'사회복지학부', confirmed:390, maxExtra:110, detail:'⚽축구 결승진출 최소+150 · 🏀농구 결승진출 최소+120 · 🏐피구 결승진출 최소+120', status:'3종목 모두 결승 진출'},
+  {name:'사회학과',    confirmed:290, maxExtra:130, detail:'⚽축구 3/4위전 최소+50 · 🏀농구 결승진출 최소+120 · 🏐피구 결승진출 최소+120', status:'농구·피구 결승 진출 / 축구 3·4위전 예정'},
+  {name:'심리학과',    confirmed:200, maxExtra:120, detail:'⚽축구 3/4위전 최소+50 · 🏀농구 3위확정 +100 · 🏐피구 3/4위전 최소+50', status:'농구 3위 확정'},
+  {name:'정치외교학과', confirmed:250, maxExtra:50,  detail:'⚽축구 결승진출 최소+150 · 🏀농구 예선탈락 +50 · 🏐피구 예선탈락 +50', status:'축구 결승 진출 확정'},
+  {name:'미디어커뮤니케이션학과', confirmed:150, maxExtra:50, detail:'⚽축구 예선탈락 +50 · 🏀농구 예선탈락 +50 · 🏐피구 3/4위전 최소+50', status:'피구 3·4위전 예정'},
+  {name:'문헌정보학과', confirmed:150, maxExtra:0,   detail:'⚽축구 예선탈락 +50 · 🏀농구 4위 +50 · 🏐피구 예선탈락 +50', status:'모든 순위 확정'},
+  {name:'지리학과',    confirmed:150, maxExtra:0,   detail:'⚽축구 예선탈락 +50 · 🏀농구 예선탈락 +50 · 🏐피구 예선탈락 +50', status:'3종목 모두 예선 탈락'},
+  {name:'자율학부',    confirmed:150, maxExtra:0,   detail:'집계 기준 최소 점수', status:'결과 업데이트 예정'}
+];
+
+let matchData = JSON.parse(JSON.stringify(defaultMatches));
+let scoreData = JSON.parse(JSON.stringify(defaultScores));
+
+// ── 연결 상태
+const statusEl = document.getElementById('saveStatus');
+function setStatus(msg, cls){
+  statusEl.textContent = msg;
+  statusEl.className = 'save-status ' + (cls||'');
+}
+
+// ── 로그인
+window.tryLogin = function(){
+  const pw = document.getElementById('pwInput').value;
+  if(pw === ADMIN_PW){
+    document.getElementById('loginScreen').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('loginErr').textContent = '비밀번호가 틀렸습니다.';
+    document.getElementById('pwInput').value = '';
+  }
+};
+document.getElementById('pwInput').addEventListener('keydown', e => {
+  if(e.key === 'Enter') window.tryLogin();
+});
+
+// ── 초기화
+async function init(){
+  setStatus('데이터 불러오는 중...', 'saving');
+  await loadMatches();
+  await loadScores();
+  setStatus('✅ 연결됨', 'saved');
+}
+
+// ── 경기 데이터 불러오기
+window.loadMatches = async function(){
+  setStatus('불러오는 중...', 'saving');
+  try{
+    const snap = await get(ref(db, 'matches'));
+    if(snap.exists()){
+      matchData = snap.val();
+    } else {
+      matchData = JSON.parse(JSON.stringify(defaultMatches));
+    }
+    renderMatches();
+    setStatus('✅ 불러오기 완료', 'saved');
+    toast('경기 결과 불러왔어요!', 'success');
+  } catch(e){
+    setStatus('❌ 불러오기 실패', 'error');
+    toast('불러오기 실패: '+e.message, 'error');
+    matchData = JSON.parse(JSON.stringify(defaultMatches));
+    renderMatches();
+  }
+};
+
+// ── 점수 데이터 불러오기
+window.loadScores = async function(){
+  try{
+    const snap = await get(ref(db, 'scores'));
+    if(snap.exists()){
+      scoreData = snap.val();
+    } else {
+      scoreData = JSON.parse(JSON.stringify(defaultScores));
+    }
+    renderScores();
+  } catch(e){
+    scoreData = JSON.parse(JSON.stringify(defaultScores));
+    renderScores();
+  }
+};
+
+// ── 경기 저장
+window.saveMatches = async function(){
+  collectMatches();
+  const btn = document.getElementById('saveMatchBtn');
+  btn.disabled = true;
+  setStatus('저장 중...', 'saving');
+  try{
+    await set(ref(db, 'matches'), matchData);
+    setStatus('✅ 저장 완료', 'saved');
+    toast('✅ 경기 결과가 저장됐어요!', 'success');
+  } catch(e){
+    setStatus('❌ 저장 실패', 'error');
+    toast('저장 실패: '+e.message, 'error');
+  } finally{
+    btn.disabled = false;
+  }
+};
+
+// ── 점수 저장
+window.saveScores = async function(){
+  collectScores();
+  const btn = document.getElementById('saveScoreBtn');
+  btn.disabled = true;
+  setStatus('저장 중...', 'saving');
+  try{
+    await set(ref(db, 'scores'), scoreData);
+    setStatus('✅ 저장 완료', 'saved');
+    toast('✅ 점수 현황이 저장됐어요!', 'success');
+  } catch(e){
+    setStatus('❌ 저장 실패', 'error');
+    toast('저장 실패: '+e.message, 'error');
+  } finally{
+    btn.disabled = false;
+  }
+};
+
+// ── 경기 렌더링
+function renderMatches(){
+  ['soccer','basketball','dodgeball'].forEach(sport => {
+    const list = document.getElementById('ml-' + sport);
+    if(!list) return;
+    const matches = matchData[sport] || [];
+    list.innerHTML = matches.map((m, i) => matchRowHTML(sport, i, m)).join('');
+  });
+}
+
+function matchRowHTML(sport, i, m){
+  const rounds = ['예선','준결승','3·4위전','결승'];
+  const opts = rounds.map(r => `<option value="${r}" ${m.round===r?'selected':''}>${r}</option>`).join('');
+  return `<div class="match-row" id="mr-${sport}-${i}">
+    <input class="match-date-input" type="text" value="${m.date||''}" placeholder="날짜" data-sport="${sport}" data-idx="${i}" data-field="date">
+    <input class="match-team-input" type="text" value="${m.team1||''}" placeholder="팀1" data-sport="${sport}" data-idx="${i}" data-field="team1">
+    <input class="match-score-input" type="number" value="${m.score1??0}" min="0" data-sport="${sport}" data-idx="${i}" data-field="score1">
+    <span class="score-sep">:</span>
+    <input class="match-score-input" type="number" value="${m.score2??0}" min="0" data-sport="${sport}" data-idx="${i}" data-field="score2">
+    <input class="match-team-input" type="text" value="${m.team2||''}" placeholder="팀2" data-sport="${sport}" data-idx="${i}" data-field="team2">
+    <select class="round-select" data-sport="${sport}" data-idx="${i}" data-field="round">${opts}</select>
+    <label class="upcoming-check">
+      <input type="checkbox" ${m.upcoming?'checked':''} data-sport="${sport}" data-idx="${i}" data-field="upcoming"> 예정
+    </label>
+    <button class="del-btn" onclick="deleteMatch('${sport}',${i})" title="삭제">✕</button>
+  </div>`;
+}
+
+// ── 경기 추가
+window.addMatch = function(sport){
+  if(!matchData[sport]) matchData[sport] = [];
+  matchData[sport].push({date:'2026. 6. 5.', team1:'', score1:0, score2:0, team2:'', round:'예선', upcoming:false});
+  renderMatches();
+};
+
+// ── 경기 삭제
+window.deleteMatch = function(sport, idx){
+  if(!confirm('이 경기를 삭제할까요?')) return;
+  matchData[sport].splice(idx, 1);
+  renderMatches();
+};
+
+// ── 경기 데이터 수집 (저장 전)
+function collectMatches(){
+  ['soccer','basketball','dodgeball'].forEach(sport => {
+    const rows = document.querySelectorAll(`[data-sport="${sport}"]`);
+    rows.forEach(el => {
+      const idx = parseInt(el.dataset.idx);
+      const field = el.dataset.field;
+      if(!matchData[sport][idx]) return;
+      if(field === 'score1' || field === 'score2'){
+        matchData[sport][idx][field] = parseInt(el.value) || 0;
+      } else if(field === 'upcoming'){
+        matchData[sport][idx][field] = el.checked;
+      } else {
+        matchData[sport][idx][field] = el.value;
+      }
+    });
+  });
+}
+
+// ── 점수 렌더링
+function renderScores(){
+  const editor = document.getElementById('scoreEditor');
+  if(!editor) return;
+  const data = Array.isArray(scoreData) ? scoreData : Object.values(scoreData);
+  editor.innerHTML = data.map((s, i) => `
+    <div class="score-item">
+      <div class="score-dept">${s.name}</div>
+      <div class="score-field">
+        <label>확정 점수</label>
+        <input class="score-num" type="number" value="${s.confirmed||0}" min="0" data-score-idx="${i}" data-score-field="confirmed">
+      </div>
+      <div class="score-field">
+        <label>추가 가능 (최대)</label>
+        <input class="score-num" type="number" value="${s.maxExtra||0}" min="0" data-score-idx="${i}" data-score-field="maxExtra">
+      </div>
+      <div class="score-field" style="flex:2;min-width:160px">
+        <label>상세 내역</label>
+        <input class="score-text" type="text" value="${s.detail||''}" data-score-idx="${i}" data-score-field="detail">
+      </div>
+      <div class="score-field" style="min-width:130px">
+        <label>현황 메모</label>
+        <input class="score-text" type="text" value="${s.status||''}" data-score-idx="${i}" data-score-field="status">
+      </div>
+    </div>
+  `).join('');
+}
+
+// ── 점수 데이터 수집
+function collectScores(){
+  const els = document.querySelectorAll('[data-score-idx]');
+  els.forEach(el => {
+    const idx = parseInt(el.dataset.scoreIdx);
+    const field = el.dataset.scoreField;
+    if(!scoreData[idx]) return;
+    if(field === 'confirmed' || field === 'maxExtra'){
+      scoreData[idx][field] = parseInt(el.value) || 0;
+    } else {
+      scoreData[idx][field] = el.value;
+    }
+  });
+}
+
+// ── 종목 탭 전환
+window.showSport = function(sport, btn){
+  document.querySelectorAll('.stab').forEach(b => b.classList.remove('on'));
+  btn.classList.add('on');
+  ['soccer','basketball','dodgeball'].forEach(s => {
+    document.getElementById('matchEditor'+s.charAt(0).toUpperCase()+s.slice(1)).style.display = s===sport?'':'none';
+  });
+};
+
+// ── 토스트
+function toast(msg, type){
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show ' + (type||'');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.className = '', 2800);
+}
+window.toast = toast;
+</script>
+</body>
+</html>
